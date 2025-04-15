@@ -23,7 +23,7 @@ source venv/bin/activate
 
 ---
 
-## Instale as dependências
+## antes de executar o programa instale as dependências
 - pip install -r requirements.txt
 
 ---

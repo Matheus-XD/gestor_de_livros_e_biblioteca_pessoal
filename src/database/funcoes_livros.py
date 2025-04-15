@@ -18,8 +18,9 @@ def inserir_ou_obter_autor(nome, nacionalidade=None):
     conn.close()
     return autor_id
 
+#função inserir livro
 
-def inserir_livro(titulo, autor_id, status, data_inicio=None, data_fim=None):
+def inserir_livro(titulo, autor_id, status, data_inicio=None, data_fim=None, caminho_pdf=None):
     from database.sessao_usuario import get_usuario_logado
     usuario = get_usuario_logado()
     if usuario is None:
@@ -31,9 +32,9 @@ def inserir_livro(titulo, autor_id, status, data_inicio=None, data_fim=None):
     cursor = conn.cursor()
 
     cursor.execute('''
-        INSERT INTO livros (titulo, autor_id, status, data_inicio, data_fim, usuario_id)
-        VALUES (?, ?, ?, ?, ?, ?)
-    ''', (titulo, autor_id, status, data_inicio, data_fim, usuario_id))
+        INSERT INTO livros (titulo, autor_id, status, data_inicio, data_fim, usuario_id, caminho_pdf)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+    ''', (titulo, autor_id, status, data_inicio, data_fim, usuario_id, caminho_pdf))
 
     conn.commit()
     conn.close()
@@ -50,6 +51,25 @@ def listar_autores():
 
     conn.close()
     return autores
+
+import sqlite3
+import os
+
+
+CAMINHO_DB = os.path.join(os.path.dirname(__file__), "biblioteca.db")
+
+def obter_pdf_por_id(id_livro):
+    conexao = sqlite3.connect(CAMINHO_DB)
+    cursor = conexao.cursor()
+
+    cursor.execute("SELECT caminho_pdf FROM livros WHERE id = ?", (id_livro,))
+    resultado = cursor.fetchone()
+
+    conexao.close()
+
+    if resultado:
+        return resultado[0]
+    return None
 
 
 def listar_livros(status=None):
