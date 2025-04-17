@@ -462,11 +462,11 @@ def salvar_livro(entry_titulo, entry_autor, combo_status, entry_inicio, entry_fi
 
         try:
             shutil.copy(caminho_pdf, destino_pdf)
-            nome_pdf = os.path.join("livros_pdf", nome_arquivo)  # Caminho relativo
+            nome_pdf = os.path.join("interface", "livros_pdf", nome_arquivo)  # Caminho relativo ao src
         except Exception as e:
             messagebox.showerror("Erro", f"Erro ao copiar o PDF: {str(e)}")
             return
-
+        
     # Insere no banco
     autor_id = inserir_ou_obter_autor(autor)
     inserir_livro(titulo, autor_id, status, data_inicio, data_fim, caminho_pdf)
@@ -552,8 +552,7 @@ def abrir_lista_livros(janela_principal):
             caminho_pdf = obter_caminho_pdf_por_id(livro_id)
 
             if caminho_pdf:
-                # Garante o caminho absoluto correto
-                caminho_completo = os.path.abspath(caminho_pdf)
+                caminho_completo = os.path.abspath(caminho_pdf)  # Sem adicionar "src" à mão
 
                 if os.path.exists(caminho_completo):
                     try:

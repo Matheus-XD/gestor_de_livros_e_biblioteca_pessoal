@@ -40,9 +40,10 @@ def inserir_livro(titulo, autor_id, status, data_inicio=None, data_fim=None, cam
     novo_caminho_pdf = None
 
     if caminho_pdf and os.path.isfile(caminho_pdf):
-        extensao = os.path.splitext(caminho_pdf)[1]
-        nome_arquivo_unico = f"{uuid.uuid4()}{extensao}"
-        novo_caminho_pdf = os.path.join(PASTA_PDF, nome_arquivo_unico)
+        nome_arquivo_original = os.path.basename(caminho_pdf)
+        nome_pdf_relativo = os.path.join("src", "interface", "livros_pdf", nome_arquivo_original)
+        novo_caminho_pdf = os.path.join(PASTA_PDF, nome_arquivo_original)
+
 
         try:
             shutil.copy(caminho_pdf, novo_caminho_pdf)
@@ -56,7 +57,8 @@ def inserir_livro(titulo, autor_id, status, data_inicio=None, data_fim=None, cam
     cursor.execute('''
         INSERT INTO livros (titulo, autor_id, status, data_inicio, data_fim, usuario_id, caminho_pdf)
         VALUES (?, ?, ?, ?, ?, ?, ?)
-    ''', (titulo, autor_id, status, data_inicio, data_fim, usuario_id, novo_caminho_pdf))
+    ''', (titulo, autor_id, status, data_inicio, data_fim, usuario_id, nome_pdf_relativo))
+
 
     conn.commit()
     conn.close()
