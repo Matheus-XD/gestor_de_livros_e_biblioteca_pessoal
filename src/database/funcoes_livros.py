@@ -1,5 +1,16 @@
+import os
+import shutil
+import uuid
+import sqlite3
 from .banco import conectar
 from database.sessao_usuario import get_usuario_logado
+
+# Caminho onde os PDFs serão armazenados
+PASTA_PDF = os.path.join("src", "interface", "livros_pdf")
+
+# Caminho do banco de dados
+CAMINHO_DB = os.path.join("src", "biblioteca.db")
+
 
 def inserir_ou_obter_autor(nome, nacionalidade=None):
     conn = conectar()
@@ -18,15 +29,26 @@ def inserir_ou_obter_autor(nome, nacionalidade=None):
     conn.close()
     return autor_id
 
-#função inserir livro
 
 def inserir_livro(titulo, autor_id, status, data_inicio=None, data_fim=None, caminho_pdf=None):
-    from database.sessao_usuario import get_usuario_logado
     usuario = get_usuario_logado()
     if usuario is None:
         print("Nenhum usuário logado.")
         return
     usuario_id = usuario[0]
+
+    novo_caminho_pdf = None
+
+    if caminho_pdf and os.path.isfile(caminho_pdf):
+        extensao = os.path.splitext(caminho_pdf)[1]
+        nome_arquivo_unico = f"{uuid.uuid4()}{extensao}"
+        novo_caminho_pdf = os.path.join(PASTA_PDF, nome_arquivo_unico)
+
+        try:
+            shutil.copy(caminho_pdf, novo_caminho_pdf)
+        except Exception as e:
+            print("Erro ao copiar o PDF:", e)
+            novo_caminho_pdf = None
 
     conn = conectar()
     cursor = conn.cursor()
@@ -34,12 +56,10 @@ def inserir_livro(titulo, autor_id, status, data_inicio=None, data_fim=None, cam
     cursor.execute('''
         INSERT INTO livros (titulo, autor_id, status, data_inicio, data_fim, usuario_id, caminho_pdf)
         VALUES (?, ?, ?, ?, ?, ?, ?)
-    ''', (titulo, autor_id, status, data_inicio, data_fim, usuario_id, caminho_pdf))
+    ''', (titulo, autor_id, status, data_inicio, data_fim, usuario_id, novo_caminho_pdf))
 
     conn.commit()
     conn.close()
-
-
 
 
 def listar_autores():
@@ -52,31 +72,10 @@ def listar_autores():
     conn.close()
     return autores
 
-import sqlite3
-import os
-
-
-CAMINHO_DB = os.path.join(os.path.dirname(__file__), "biblioteca.db")
-
-def obter_pdf_por_id(id_livro):
-    conexao = sqlite3.connect(CAMINHO_DB)
-    cursor = conexao.cursor()
-
-    cursor.execute("SELECT caminho_pdf FROM livros WHERE id = ?", (id_livro,))
-    resultado = cursor.fetchone()
-
-    conexao.close()
-
-    if resultado:
-        return resultado[0]
-    return None
-
 
 def listar_livros(status=None):
-    from database.sessao_usuario import get_usuario_logado
-
     usuario = get_usuario_logado()
-    usuario_id = usuario[0]  # pega só o ID
+    usuario_id = usuario[0]
 
     if usuario_id is None:
         print("Nenhum usuário logado.")
@@ -87,14 +86,14 @@ def listar_livros(status=None):
 
     if status:
         cursor.execute('''
-            SELECT livros.id, livros.titulo, autores.nome, livros.status, livros.data_inicio, livros.data_fim
+            SELECT livros.id, livros.titulo, autores.nome, livros.status, livros.data_inicio, livros.data_fim, livros.caminho_pdf
             FROM livros
             JOIN autores ON livros.autor_id = autores.id
             WHERE livros.status = ? AND livros.usuario_id = ?
         ''', (status, usuario_id))
     else:
         cursor.execute('''
-            SELECT livros.id, livros.titulo, autores.nome, livros.status, livros.data_inicio, livros.data_fim
+            SELECT livros.id, livros.titulo, autores.nome, livros.status, livros.data_inicio, livros.data_fim, livros.caminho_pdf
             FROM livros
             JOIN autores ON livros.autor_id = autores.id
             WHERE livros.usuario_id = ?
@@ -105,9 +104,7 @@ def listar_livros(status=None):
     return resultados
 
 
-
 def atualizar_livro(id_livro, novo_titulo, novo_status, nova_data_inicio, nova_data_fim):
-    from database.sessao_usuario import get_usuario_logado
     usuario_id = get_usuario_logado()[0]
     if usuario_id is None:
         print("Nenhum usuário logado.")
@@ -116,7 +113,6 @@ def atualizar_livro(id_livro, novo_titulo, novo_status, nova_data_inicio, nova_d
     conn = conectar()
     cursor = conn.cursor()
 
-    # Verifica se o livro pertence ao usuário
     cursor.execute("SELECT id FROM livros WHERE id = ? AND usuario_id = ?", (id_livro, usuario_id))
     if cursor.fetchone() is None:
         print("Você não tem permissão para editar este livro.")
@@ -133,9 +129,7 @@ def atualizar_livro(id_livro, novo_titulo, novo_status, nova_data_inicio, nova_d
     conn.close()
 
 
-
 def excluir_livro(id_livro):
-    from database.sessao_usuario import get_usuario_logado
     usuario_id = get_usuario_logado()[0]
 
     if usuario_id is None:
@@ -145,7 +139,6 @@ def excluir_livro(id_livro):
     conn = conectar()
     cursor = conn.cursor()
 
-    # Verifica se o livro pertence ao usuário
     cursor.execute("SELECT id FROM livros WHERE id = ? AND usuario_id = ?", (id_livro, usuario_id))
     if cursor.fetchone() is None:
         print("Você não tem permissão para excluir este livro.")
@@ -156,3 +149,16 @@ def excluir_livro(id_livro):
     conn.commit()
     conn.close()
 
+
+def obter_pdf_por_id(id_livro):
+    conexao = sqlite3.connect(CAMINHO_DB)
+    cursor = conexao.cursor()
+
+    cursor.execute("SELECT caminho_pdf FROM livros WHERE id = ?", (id_livro,))
+    resultado = cursor.fetchone()
+
+    conexao.close()
+
+    if resultado:
+        return resultado[0]
+    return None

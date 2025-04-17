@@ -550,16 +550,23 @@ def abrir_lista_livros(janela_principal):
 
             # Buscar o caminho do PDF pelo ID
             caminho_pdf = obter_caminho_pdf_por_id(livro_id)
-            if caminho_pdf and os.path.exists(os.path.join("src", caminho_pdf)):
-                caminho_completo = os.path.join("src", caminho_pdf)
-                try:
-                    os.startfile(caminho_completo)  # Para Windows
-                except AttributeError:
-                    subprocess.call(["open", caminho_completo])  # Para Mac
-                except Exception:
-                    subprocess.call(["xdg-open", caminho_completo])  # Para Linux
+
+            if caminho_pdf:
+                # Garante o caminho absoluto correto
+                caminho_completo = os.path.abspath(caminho_pdf)
+
+                if os.path.exists(caminho_completo):
+                    try:
+                        os.startfile(caminho_completo)  # Windows
+                    except AttributeError:
+                        subprocess.call(["open", caminho_completo])  # macOS
+                    except Exception:
+                        subprocess.call(["xdg-open", caminho_completo])  # Linux
+                else:
+                    messagebox.showinfo("Arquivo não encontrado", f"PDF não encontrado em:\n{caminho_completo}")
             else:
                 messagebox.showinfo("Sem PDF", "Este livro não possui PDF associado.")
+
 
     tree.bind("<ButtonRelease-1>", ao_clicar_simples)
 
